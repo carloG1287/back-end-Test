@@ -4,7 +4,6 @@ import {check, validationResult} from 'express-validator';
 
 const router = Router();
 
-// GET /projects - Retrieve all projects
 router.get('/', async (req, res) => {
     try{
         const projects = await prisma.project.findMany({
@@ -18,7 +17,26 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST /projects - Create a new project
+router.get('/:id', async (req, res) => {
+    const {id} = req.params;
+    try{
+        const project = await prisma.project.findUnique({
+            where: {id: parseInt(id)},
+            include: {tasks: true}
+        });
+        if(project){
+            res.json(project);
+        }
+        else{
+            res.status(404).json({message: 'Project not found'});
+        }
+    }
+    catch(err){
+        res.status(500).json({message: 'Error retrieving project'});
+    }
+}
+);
+
 router.post('/',[check('name').notEmpty().withMessage('Name is required')], async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if(!errors.isEmpty()){
@@ -36,7 +54,7 @@ router.post('/',[check('name').notEmpty().withMessage('Name is required')], asyn
         res.status(500).json({message: 'Error creating project'});
     }
 });
-// DELETE /projects/:id - Soft delete a project by setting its deletedAt field
+
 router.delete('/:id', async (req, res) => {
     const {id} = req.params;
     try{
@@ -51,8 +69,6 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-
-// POST /projects/:id/rollback - Mark all tasks of a project as not completed
 router.post('/:id/rollback', async (req, res) => {
     const {id} = req.params;
     try{
